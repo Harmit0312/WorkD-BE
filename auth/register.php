@@ -53,8 +53,14 @@ $stmt = $conn->prepare(
 );
 $stmt->bind_param("ssss", $name, $email, $hashed, $role);
 
-$stmt->execute();
-
-echo json_encode(["message" => "Registered successfully"]);
-
-?>
+if ($stmt->execute()) {
+    echo json_encode([
+        "success" => true,
+        "message" => "Registration successful"
+    ]);
+} else {
+    echo json_encode([
+        "success" => false,
+        "message" => "Registration failed"
+    ]);
+}

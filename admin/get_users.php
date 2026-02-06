@@ -78,3 +78,4 @@ echo json_encode([
     "users" => $users,
     "total_pages" => ceil($total / $limit)
 ]);
+?>
