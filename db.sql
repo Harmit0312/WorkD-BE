@@ -20,6 +20,7 @@ CREATE TABLE jobs (
   title VARCHAR(200),
   description TEXT,
   budget INT,
+  deadline DATETIME
   status ENUM('open','assigned','completed'),
   FOREIGN KEY (client_id) REFERENCES users(id)
 );
