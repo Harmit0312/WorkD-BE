@@ -25,11 +25,13 @@ $client_id = $_SESSION['user_id'];
 
 /* ===== FETCH CLIENT JOBS ===== */
 $sql = "
-    SELECT id, title, description, budget
+    SELECT id, title, description, budget, status
     FROM jobs
     WHERE client_id = ?
+    AND status != 'deleted'
     ORDER BY id DESC
 ";
+
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $client_id);
@@ -44,19 +46,22 @@ while ($job = $result->fetch_assoc()) {
 
     /* ===== FETCH PROPOSALS FOR JOB ===== */
     $p = $conn->prepare("
-        SELECT 
-            a.freelancer_id,
-            u.name AS freelancer_name,
-            u.email,
-            u.experience,
-            u.skills,
-            a.proposal AS message,
-            a.status
-        FROM applications a
-        JOIN users u ON u.id = a.freelancer_id
-        WHERE a.job_id = ?
-        ORDER BY a.id DESC
-    ");
+    SELECT 
+        a.freelancer_id,
+        u.name AS freelancer_name,
+        u.email,
+        u.experience,
+        u.skills,
+        a.proposal AS message,
+        a.status
+    FROM applications a
+    JOIN users u ON u.id = a.freelancer_id
+    JOIN jobs j ON j.id = a.job_id
+    WHERE a.job_id = ?
+    AND j.status != 'deleted'
+    ORDER BY a.id DESC
+");
+
 
     $p->bind_param("i", $job_id);
     $p->execute();
