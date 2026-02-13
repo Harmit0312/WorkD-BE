@@ -28,14 +28,17 @@ SELECT
     a.status,
     j.title AS job_title,
     j.description AS job_description,
+    j.deadline,
     u.name AS client_name
 FROM applications a
 JOIN jobs j ON j.id = a.job_id
 JOIN users u ON u.id = j.client_id
 WHERE a.freelancer_id = ?
 AND j.status != 'deleted'
+AND j.freelancer_deleted = 0
 ORDER BY a.id DESC
 ";
+
 
 
 $stmt = $conn->prepare($sql);

@@ -20,6 +20,7 @@ SELECT
     j.title,
     j.description,
     j.budget,
+    j.deadline,
     j.status,
     u.name AS client_name
 FROM applications a
@@ -28,8 +29,10 @@ INNER JOIN users u ON j.client_id = u.id
 WHERE a.freelancer_id = ?
 AND a.status = 'accepted'
 AND j.status != 'deleted'
+AND freelancer_deleted = 0
 ORDER BY j.id DESC
 ";
+
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $freelancer_id);
