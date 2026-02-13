@@ -26,7 +26,7 @@ $client_id = $_SESSION['user_id'];
 
 /* ===== FETCH JOBS ===== */
 $stmt = $conn->prepare("
-    SELECT id, title, description, budget
+    SELECT id, title, description, budget, deadline
     FROM jobs
     WHERE client_id = ?
     AND status = 'open'

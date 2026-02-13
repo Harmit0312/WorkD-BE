@@ -31,8 +31,9 @@ $job_id      = $data['job_id'] ?? '';
 $title       = trim($data['title'] ?? '');
 $description = trim($data['description'] ?? '');
 $budget      = trim($data['budget'] ?? '');
+$deadline    = trim($data['deadline'] ?? '');
 
-if (!$job_id || !$title || !$description || !$budget) {
+if (!$job_id || !$title || !$description || !$budget || !$deadline) {
     echo json_encode([
         "status" => false,
         "message" => "All fields are required"
@@ -58,12 +59,11 @@ if ($checkResult->num_rows === 0) {
 /* ===== UPDATE JOB ===== */
 $updateSql = "
     UPDATE jobs 
-    SET title = ?, description = ?, budget = ?
+    SET title = ?, description = ?, budget = ?, deadline = ?
     WHERE id = ?
 ";
 $updateStmt = $conn->prepare($updateSql);
-$updateStmt->bind_param("ssii", $title, $description, $budget, $job_id);
-
+$updateStmt->bind_param("ssii", $title, $description, $budget, $deadline, $job_id);
 if ($updateStmt->execute()) {
     echo json_encode([
         "status" => true,

@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 /* ===== AUTH CHECK ===== */
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'freelancer') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     echo json_encode([
         "status" => false,
         "message" => "Unauthorized"
@@ -23,7 +23,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'freelancer') {
 }
 
 /* ===== GET JOB ID ===== */
-$freelancer_id = $_SESSION['user_id'];
 $data = json_decode(file_get_contents("php://input"), true);
 $job_id = isset($data['job_id']) ? (int)$data['job_id'] : 0;
 
@@ -35,39 +34,32 @@ if ($job_id <= 0) {
     exit;
 }
 
-/* ===== CHECK JOB BELONGS TO FREELANCER AND IS PAID ===== */
+/* ===== CHECK JOB IS PAID ===== */
 $check = $conn->prepare("
-    SELECT j.id
-    FROM applications a
-    INNER JOIN jobs j ON a.job_id = j.id
-    WHERE a.freelancer_id = ?
-      AND a.status = 'accepted'
-      AND j.id = ?
-      AND j.status = 'paid'
+    SELECT id
+    FROM jobs
+    WHERE id = ? 
+      AND status = 'paid'
     LIMIT 1
 ");
-$check->bind_param("ii", $freelancer_id, $job_id);
+$check->bind_param("i", $job_id);
 $check->execute();
 $result = $check->get_result();
 
 if ($result->num_rows === 0) {
     echo json_encode([
         "status" => false,
-        "message" => "You cannot delete this job"
+        "message" => "Job not found or not paid"
     ]);
     exit;
 }
 
-/* ===== SOFT DELETE FOR FREELANCER =====
-   This must set freelancer_deleted = 1
-   Make sure the column exists: 
-   ALTER TABLE jobs ADD COLUMN freelancer_deleted TINYINT(1) DEFAULT 0;
-*/
+/* ===== SOFT DELETE FOR ADMIN ONLY ===== */
 $delete = $conn->prepare("
     UPDATE jobs
-    SET freelancer_deleted = 1
+    SET admin_deleted = 1
     WHERE id = ? 
-      AND freelancer_deleted = 0
+      AND admin_deleted = 0
     LIMIT 1
 ");
 $delete->bind_param("i", $job_id);
@@ -76,12 +68,12 @@ $delete->execute();
 if ($delete->affected_rows > 0) {
     echo json_encode([
         "status" => true,
-        "message" => "Job removed successfully"
+        "message" => "Job removed successfully from admin view"
     ]);
 } else {
     echo json_encode([
         "status" => false,
-        "message" => "Failed to remove job (it may already be deleted)"
+        "message" => "Failed to remove job from admin view"
     ]);
 }
 

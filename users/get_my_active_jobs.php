@@ -33,6 +33,7 @@ LEFT JOIN users u
     ON a.freelancer_id = u.id
 WHERE j.client_id = ?
 AND j.status != 'deleted'
+AND client_deleted = 0
 ORDER BY j.id DESC
 ";
 

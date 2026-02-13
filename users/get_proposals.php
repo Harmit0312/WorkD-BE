@@ -25,10 +25,11 @@ $client_id = $_SESSION['user_id'];
 
 /* ===== FETCH CLIENT JOBS ===== */
 $sql = "
-    SELECT id, title, description, budget, status
+    SELECT id, title, description, budget, status, deadline
     FROM jobs
     WHERE client_id = ?
     AND status != 'deleted'
+    AND client_deleted = 0
     ORDER BY id DESC
 ";
 
@@ -53,14 +54,17 @@ while ($job = $result->fetch_assoc()) {
         u.experience,
         u.skills,
         a.proposal AS message,
-        a.status
+        a.status,
+        j.deadline
     FROM applications a
     JOIN users u ON u.id = a.freelancer_id
     JOIN jobs j ON j.id = a.job_id
     WHERE a.job_id = ?
     AND j.status != 'deleted'
+    AND j.client_deleted = 0
     ORDER BY a.id DESC
 ");
+
 
 
     $p->bind_param("i", $job_id);
