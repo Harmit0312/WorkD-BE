@@ -68,12 +68,12 @@ $delete->execute();
 if ($delete->affected_rows > 0) {
     echo json_encode([
         "status" => true,
-        "message" => "Job removed successfully from admin view"
+        "message" => "Job removed successfully"
     ]);
 } else {
     echo json_encode([
         "status" => false,
-        "message" => "Failed to remove job from admin view"
+        "message" => "Failed to remove job"
     ]);
 }
 
