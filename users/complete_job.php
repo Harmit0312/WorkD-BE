@@ -1,11 +1,11 @@
 <?php
 require_once "../config/db.php";
-// session_start();
 
 header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
@@ -27,8 +27,7 @@ if (!isset($data['job_id'])) {
 
 $job_id = intval($data['job_id']);
 
-
-// ✅ Verify job belongs to this freelancer and is assigned
+/* ✅ Verify job belongs to this freelancer and is assigned */
 $check_sql = "
 SELECT j.id
 FROM jobs j
@@ -52,20 +51,47 @@ if ($result->num_rows === 0) {
     exit;
 }
 
-
-// ✅ Update job to completed
+/* ✅ Update job to completed */
 $update_sql = "UPDATE jobs SET status = 'completed' WHERE id = ?";
 $stmt = $conn->prepare($update_sql);
 $stmt->bind_param("i", $job_id);
 
-if ($stmt->execute()) {
-    echo json_encode([
-        "status" => true,
-        "message" => "Job marked as completed successfully"
-    ]);
-} else {
+if (!$stmt->execute()) {
     echo json_encode([
         "status" => false,
         "message" => "Failed to update job"
     ]);
+    exit;
 }
+
+/* ✅ Update user_activity table */
+
+// Check if record exists
+$check_activity = $conn->prepare("SELECT user_id FROM user_activity WHERE user_id = ?");
+$check_activity->bind_param("i", $freelancer_id);
+$check_activity->execute();
+$activity_result = $check_activity->get_result();
+
+if ($activity_result->num_rows > 0) {
+    // Update existing row
+    $update_activity = $conn->prepare("
+        UPDATE user_activity 
+        SET completed_orders = completed_orders + 1 
+        WHERE user_id = ?
+    ");
+    $update_activity->bind_param("i", $freelancer_id);
+    $update_activity->execute();
+} else {
+    // Insert new row
+    $insert_activity = $conn->prepare("
+        INSERT INTO user_activity (user_id, completed_orders) 
+        VALUES (?, 1)
+    ");
+    $insert_activity->bind_param("i", $freelancer_id);
+    $insert_activity->execute();
+}
+
+echo json_encode([
+    "status" => true,
+    "message" => "Job marked as completed successfully"
+]);
