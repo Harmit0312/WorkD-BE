@@ -5,6 +5,7 @@ header("Access-Control-Allow-Origin: http://localhost:5173");
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -40,6 +41,7 @@ $getJob = $conn->prepare("
     WHERE id = ? 
     AND client_id = ?
     AND status = 'completed'
+    LIMIT 1
 ");
 
 $getJob->bind_param("ii", $job_id, $client_id);
@@ -55,7 +57,7 @@ if ($jobResult->num_rows === 0) {
 }
 
 $job = $jobResult->fetch_assoc();
-$amount = $job['budget'];
+$amount = (float)$job['budget'];
 
 /* ===== CHECK IF ALREADY PAID ===== */
 $checkPayment = $conn->prepare("
@@ -99,12 +101,32 @@ if ($freelancerResult->num_rows === 0) {
 $freelancer = $freelancerResult->fetch_assoc();
 $freelancer_id = $freelancer['freelancer_id'];
 
+/* ===== GET COMMISSION FROM ADMIN SETTINGS ===== */
+$getCommission = $conn->prepare("
+    SELECT commission_percentage 
+    FROM admin_settings 
+    LIMIT 1
+");
+
+$getCommission->execute();
+$commissionResult = $getCommission->get_result();
+
+if ($commissionResult->num_rows === 0) {
+    echo json_encode([
+        "status" => false,
+        "message" => "Commission setting not found"
+    ]);
+    exit;
+}
+
+$commissionRow = $commissionResult->fetch_assoc();
+$commission_percentage = (float)$commissionRow['commission_percentage'];
+
 /* ===== CALCULATE COMMISSION ===== */
-$commission_percentage = 10;
 $commission_amount = ($amount * $commission_percentage) / 100;
 $freelancer_amount = $amount - $commission_amount;
 
-/* ===== TRANSACTION ===== */
+/* ===== START TRANSACTION ===== */
 $conn->begin_transaction();
 
 try {
@@ -135,7 +157,9 @@ try {
         $freelancer_amount
     );
 
-    $insertOrder->execute();
+    if (!$insertOrder->execute()) {
+        throw new Exception("Order insert failed");
+    }
 
     /* UPDATE JOB STATUS */
     $updateJob = $conn->prepare("
@@ -144,7 +168,10 @@ try {
         WHERE id = ?
     ");
     $updateJob->bind_param("i", $job_id);
-    $updateJob->execute();
+
+    if (!$updateJob->execute()) {
+        throw new Exception("Job update failed");
+    }
 
     $conn->commit();
 

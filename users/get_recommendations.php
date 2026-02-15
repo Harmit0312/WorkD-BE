@@ -38,7 +38,7 @@ while ($row = $result->fetch_assoc()) {
         "id" => $row['id'],
         "title" => $row['title'],
         "client" => $row['client'],
-        "budget" => "$" . number_format($row['budget']),
+        "budget" => "₹" . number_format($row['budget']),
         "deadline" => date("d M Y", strtotime($row['deadline']))
     ];
 }
