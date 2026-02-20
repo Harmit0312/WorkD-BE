@@ -10,10 +10,10 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('admin','client','freelancer') NOT NULL,
-    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    deleted_at DATE NULL DEFAULT NULL,
     avatar VARCHAR(255) DEFAULT NULL,
-    join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    experience VARCHAR(100) DEFAULT NULL,
+    join_date DATE DEFAULT CURRENT_TIMESTAMP,
+    experience INT(11) DEFAULT NULL,
     skills TEXT DEFAULT NULL
 );
 
@@ -24,9 +24,9 @@ CREATE TABLE jobs (
     client_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    budget DECIMAL(12,2) NOT NULL,
-    deadline DATE NOT NULL,
-    status ENUM('open','assigned','completed','cancelled') DEFAULT 'open',
+    budget INT NOT NULL,
+    deadline DATETIME NOT NULL,
+    status ENUM('open','assigned','completed','paid', 'deleted') DEFAULT 'open',
     client_deleted TINYINT(1) DEFAULT 0,
     freelancer_deleted TINYINT(1) DEFAULT 0,
     admin_deleted TINYINT(1) DEFAULT 0,
@@ -41,7 +41,6 @@ CREATE TABLE applications (
     freelancer_id INT NOT NULL,
     proposal TEXT NOT NULL,
     status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
     FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -53,12 +52,11 @@ CREATE TABLE orders (
     job_id INT NOT NULL,
     client_id INT NOT NULL,
     freelancer_id INT NOT NULL,
-    amount DECIMAL(12,2) NOT NULL,
-    commission_percentage DECIMAL(5,2) NOT NULL,
-    commission_amount DECIMAL(12,2) NOT NULL,
-    freelancer_amount DECIMAL(12,2) NOT NULL,
-    status ENUM('unpaid','paid') DEFAULT 'unpaid',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    amount INT NOT NULL,
+    commission_percentage INT NOT NULL,
+    commission_amount INT NOT NULL,
+    freelancer_amount INT NOT NULL,
+    status ENUM('in_progress','completed','paid') DEFAULT 'in_progress',
     FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
     FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE

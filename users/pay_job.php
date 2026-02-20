@@ -1,16 +1,6 @@
 <?php
+require_once "../cors.php";
 require_once "../config/db.php";
-
-header("Access-Control-Allow-Origin: http://localhost:5173");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
 
 /* ===== AUTH CHECK ===== */
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
@@ -21,29 +11,27 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'client') {
     exit;
 }
 
-$client_id = $_SESSION['user_id'];
 $data = json_decode(file_get_contents("php://input"), true);
-
 $job_id = $data['job_id'] ?? null;
+$client_id = $_SESSION['user_id'];
 
 if (!$job_id) {
     echo json_encode([
         "status" => false,
-        "message" => "Invalid job ID"
+        "message" => "Invalid Job ID"
     ]);
     exit;
 }
 
-/* ===== CHECK JOB ===== */
+/* ===== GET JOB ===== */
 $getJob = $conn->prepare("
-    SELECT id, budget
+    SELECT id, budget 
     FROM jobs 
     WHERE id = ? 
-    AND client_id = ?
-    AND status = 'completed'
+      AND client_id = ? 
+      AND status = 'completed'
     LIMIT 1
 ");
-
 $getJob->bind_param("ii", $job_id, $client_id);
 $getJob->execute();
 $jobResult = $getJob->get_result();
@@ -61,18 +49,18 @@ $amount = (float)$job['budget'];
 
 /* ===== CHECK IF ALREADY PAID ===== */
 $checkPayment = $conn->prepare("
-    SELECT id FROM orders 
+    SELECT id 
+    FROM orders 
     WHERE job_id = ? AND status = 'paid'
     LIMIT 1
 ");
 $checkPayment->bind_param("i", $job_id);
 $checkPayment->execute();
-$existing = $checkPayment->get_result();
 
-if ($existing->num_rows > 0) {
+if ($checkPayment->get_result()->num_rows > 0) {
     echo json_encode([
         "status" => false,
-        "message" => "Payment already completed for this job"
+        "message" => "Payment already completed"
     ]);
     exit;
 }
@@ -80,12 +68,10 @@ if ($existing->num_rows > 0) {
 /* ===== GET ACCEPTED FREELANCER ===== */
 $getFreelancer = $conn->prepare("
     SELECT freelancer_id 
-    FROM applications
-    WHERE job_id = ?
-    AND status = 'accepted'
+    FROM applications 
+    WHERE job_id = ? AND status = 'accepted'
     LIMIT 1
 ");
-
 $getFreelancer->bind_param("i", $job_id);
 $getFreelancer->execute();
 $freelancerResult = $getFreelancer->get_result();
@@ -98,35 +84,20 @@ if ($freelancerResult->num_rows === 0) {
     exit;
 }
 
-$freelancer = $freelancerResult->fetch_assoc();
-$freelancer_id = $freelancer['freelancer_id'];
+$freelancer_id = $freelancerResult->fetch_assoc()['freelancer_id'];
 
-/* ===== GET COMMISSION FROM ADMIN SETTINGS ===== */
-$getCommission = $conn->prepare("
+/* ===== GET COMMISSION ===== */
+$commissionRes = $conn->query("
     SELECT commission_percentage 
     FROM admin_settings 
     LIMIT 1
 ");
+$commission_percentage = (float)$commissionRes->fetch_assoc()['commission_percentage'];
 
-$getCommission->execute();
-$commissionResult = $getCommission->get_result();
-
-if ($commissionResult->num_rows === 0) {
-    echo json_encode([
-        "status" => false,
-        "message" => "Commission setting not found"
-    ]);
-    exit;
-}
-
-$commissionRow = $commissionResult->fetch_assoc();
-$commission_percentage = (float)$commissionRow['commission_percentage'];
-
-/* ===== CALCULATE COMMISSION ===== */
 $commission_amount = ($amount * $commission_percentage) / 100;
 $freelancer_amount = $amount - $commission_amount;
 
-/* ===== START TRANSACTION ===== */
+/* ===== TRANSACTION ===== */
 $conn->begin_transaction();
 
 try {
@@ -142,8 +113,7 @@ try {
             commission_amount,
             freelancer_amount,
             status
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'paid')
     ");
 
     $insertOrder->bind_param(
@@ -156,22 +126,16 @@ try {
         $commission_amount,
         $freelancer_amount
     );
+    $insertOrder->execute();
 
-    if (!$insertOrder->execute()) {
-        throw new Exception("Order insert failed");
-    }
-
-    /* UPDATE JOB STATUS */
+    /* ✅ UPDATE JOB STATUS TO PAID */
     $updateJob = $conn->prepare("
         UPDATE jobs 
         SET status = 'paid'
         WHERE id = ?
     ");
     $updateJob->bind_param("i", $job_id);
-
-    if (!$updateJob->execute()) {
-        throw new Exception("Job update failed");
-    }
+    $updateJob->execute();
 
     $conn->commit();
 
@@ -181,7 +145,6 @@ try {
     ]);
 
 } catch (Exception $e) {
-
     $conn->rollback();
 
     echo json_encode([
