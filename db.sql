@@ -85,12 +85,12 @@ CREATE TABLE user_activity (
 -- ADMIN SETTINGS TABLE
 CREATE TABLE admin_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    commission_percentage DECIMAL(5,2) NOT NULL DEFAULT 10.00
+    commission_percentage INT NOT NULL DEFAULT 10
 );
 
 
 -- DEFAULT COMMISSION SETTING
-INSERT INTO admin_settings (commission_percentage) VALUES (10.00);
+INSERT INTO admin_settings (commission_percentage) VALUES (10);
 
 -- SAMPLE ADMIN USER
 INSERT INTO users (name,email,password,role)
