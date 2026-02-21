@@ -72,6 +72,19 @@ CREATE TABLE user_activity (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- JOB UPLOADS TABLE
+CREATE TABLE job_files (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    freelancer_id INT NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50),
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (freelancer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 
 -- REVIEWS TABLE
 -- CREATE TABLE reviews (
@@ -85,12 +98,12 @@ CREATE TABLE user_activity (
 -- ADMIN SETTINGS TABLE
 CREATE TABLE admin_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    commission_percentage DECIMAL(5,2) NOT NULL DEFAULT 10.00
+    commission_percentage INT NOT NULL DEFAULT 10
 );
 
 
 -- DEFAULT COMMISSION SETTING
-INSERT INTO admin_settings (commission_percentage) VALUES (10.00);
+INSERT INTO admin_settings (commission_percentage) VALUES (10);
 
 -- SAMPLE ADMIN USER
 INSERT INTO users (name,email,password,role)
