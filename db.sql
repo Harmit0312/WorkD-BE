@@ -9,7 +9,7 @@ CREATE TABLE users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin','client','freelancer') NOT NULL,
+    role ENUM('client','freelancer','admin') NOT NULL,
     deleted_at DATE NULL DEFAULT NULL,
     avatar VARCHAR(255) DEFAULT NULL,
     join_date DATE DEFAULT CURRENT_TIMESTAMP,
@@ -107,4 +107,4 @@ INSERT INTO admin_settings (commission_percentage) VALUES (10);
 
 -- SAMPLE ADMIN USER
 INSERT INTO users (name,email,password,role)
-VALUES ('Admin','admin@test.com','$2y$10$abcdefghijklmnopqrstuv','admin');
+VALUES ('Admin','admin@test.com','$2y$10$csBAn4ebbazMHP/nRVT.eOXRQ1/zRG7KXBAkcjAREiODgqClCrI3e','admin');
